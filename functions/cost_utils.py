@@ -36,7 +36,7 @@ def get_aws_cost(service_name: str, start_date: str, end_date: str) -> float:
             'ce',
             aws_access_key_id=get_config('AWS_ACCESS_KEY'),
             aws_secret_access_key=get_config('AWS_SECRET_KEY'),
-            region_name=get_config('AWS_REGION', 'us-east-1')
+            region_name=get_config('AWS_REGION') or 'us-east-1'
         )
         
         response = ce.get_cost_and_usage(
@@ -85,8 +85,8 @@ def get_gcp_cost(service_description: str, start_date: str, end_date: str) -> fl
         client = bigquery.Client(project=project_id)
         
         # Get dataset and table configuration
-        dataset = get_config('GCP_BILLING_DATASET', 'ss_gcp_billing')
-        table_prefix = get_config('GCP_BILLING_TABLE_PREFIX', 'gcp_billing_export_v1')
+        dataset = get_config('GCP_BILLING_DATASET') or 'ss_gcp_billing'
+        table_prefix = get_config('GCP_BILLING_TABLE_PREFIX') or 'gcp_billing_export_v1'
         table = f"{dataset}.{table_prefix}_*"
         
         # Build query

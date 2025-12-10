@@ -13,18 +13,19 @@ logger = logging.getLogger('bedrock_utils')
 logger.setLevel(logging.INFO)
 
 
-def get_config(key: str) -> Optional[str]:
+def get_config(key: str, default: Optional[str] = None) -> Optional[str]:
     """
     Retrieves configuration values from environment variables.
     
     Args:
         key: The environment variable key
+        default: Optional default value if key is not found
         
     Returns:
-        The configuration value or None if not found
+        The configuration value, default if not found, or None
     """
-    value = os.environ.get(key)
-    if not value:
+    value = os.environ.get(key, default)
+    if not value and default is None:
         logger.warning(f"Config key {key} not found in environment variables.")
     return value
 

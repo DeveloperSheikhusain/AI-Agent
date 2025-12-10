@@ -1,6 +1,6 @@
 from firebase_functions import https_fn
 from firebase_admin import initialize_app
-from common import invoke_bedrock_agent, save_user_details, save_chat_message, get_chat_context, db
+from common import invoke_bedrock_agent, save_user_details, save_chat_message, get_chat_context, get_db
 from common import get_remote_config, send_facebook_message, send_instagram_message, send_whatsapp_message
 import json
 import logging
@@ -48,7 +48,7 @@ def users_list(req: https_fn.Request) -> https_fn.Response:
     
     try:
         collection_name = f"ss_{platform}_user_details"
-        docs = db.collection(collection_name).stream()
+        docs = get_db().collection(collection_name).stream()
         
         users = []
         for doc in docs:

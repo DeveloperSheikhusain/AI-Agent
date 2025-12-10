@@ -11,15 +11,28 @@ import requests
 from firebase_admin import firestore, initialize_app, get_app
 from bedrock_utils import invoke_bedrock_agent, get_config
 
-# Initialize Firebase Admin
-try:
-    app = get_app()
-except ValueError:
-    app = initialize_app()
-
-db = firestore.client()
 logger = logging.getLogger('common')
 logger.setLevel(logging.INFO)
+
+# Lazy initialization variables
+_db = None
+
+
+def get_db():
+    """
+    Get Firestore client with lazy initialization.
+    This prevents initialization during deployment analysis.
+    """
+    global _db
+    if _db is None:
+        try:
+            app = get_app()
+        except ValueError:
+            app = initialize_app()
+        _db = firestore.client()
+    return _db
+
+
 
 
 def get_remote_config(key: str) -> str:
@@ -191,7 +204,7 @@ def save_user_details(platform: str, user_data: dict) -> None:
         logger.error("User ID missing in user_data.")
         return
 
-    user_ref = db.collection(collection_name).document(user_id)
+    user_ref = get_db().collection(collection_name).document(user_id)
     
     # Add timestamps
     now = firestore.SERVER_TIMESTAMP
@@ -220,7 +233,7 @@ def save_chat_message(platform: str, user_id: str, message: dict) -> None:
         user_id: User identifier
         message: Message data dictionary
     """
-    collection_ref = db.collection(f"ss_{platform}_chat_history") \
+    collection_ref = get_db().collection(f"ss_{platform}_chat_history") \
                        .document(user_id) \
                        .collection('messages')
     
@@ -241,7 +254,7 @@ def get_chat_context(platform: str, user_id: str, limit: int = 10) -> list:
     Returns:
         list: List of message dictionaries in chronological order
     """
-    collection_ref = db.collection(f"ss_{platform}_chat_history") \
+    collection_ref = get_db().collection(f"ss_{platform}_chat_history") \
                        .document(user_id) \
                        .collection('messages')
     
