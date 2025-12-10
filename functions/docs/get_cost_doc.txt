@@ -1,0 +1,71 @@
+Get Cost in Python
+AWS (Bedrock + Marketplace)
+
+👉 Use AWS Cost Explorer API (boto3)
+
+Python
+import boto3
+from datetime import datetime
+
+ce = boto3.client("ce")
+
+def get_cost(service):
+    start = datetime.today().replace(day=1).strftime("%Y-%m-%d")
+    end = datetime.today().strftime("%Y-%m-%d")
+
+    res = ce.get_cost_and_usage(
+        TimePeriod={'Start': start, 'End': end},
+        Granularity='MONTHLY',
+        Metrics=['UnblendedCost'],
+        Filter={"Dimensions": {"Key": "SERVICE", "Values": [service]}}
+    )
+    return res['ResultsByTime'][0]['Total']['UnblendedCost']['Amount']
+
+print("Bedrock:", get_cost("Amazon Bedrock"))
+print("Marketplace:", get_cost("AWS Marketplace"))
+
+✅ Google Cloud (Firestore + Cloud Functions + Translation API)
+
+👉 Costs come from BigQuery Billing Export.
+
+You already enabled:
+✔️ Detailed usage cost export
+✔️ Standard usage export
+✔️ Dataset: ss_gcp_billing
+
+Now query that dataset.
+
+Python
+from google.cloud import bigquery
+
+client = bigquery.Client()
+TABLE = "ss_gcp_billing.gcp_billing_export_v1_*"
+
+def get_gcp_cost(service):
+    query = f"""
+    SELECT SUM(cost) AS total_cost
+    FROM `{TABLE}`
+    WHERE service.description = '{service}'
+      AND usage_start_time >= DATE_TRUNC(CURRENT_DATE(), MONTH)
+    """
+    rows = client.query(query).result()
+    for r in rows:
+        return r.total_cost or 0
+
+print("Firestore:", get_gcp_cost("Cloud Firestore"))
+print("Cloud Functions:", get_gcp_cost("Cloud Functions"))
+print("Translation API:", get_gcp_cost("Cloud Translation API"))
+
+🎯 Final Summary (One Line Each)
+
+AWS Bedrock Cost → ce.get_cost_and_usage
+
+AWS Marketplace Cost → ce.get_cost_and_usage
+
+Firestore Cost → Query BigQuery billing export
+
+Cloud Functions Cost → Query BigQuery billing export
+
+Translation API Cost → Query BigQuery billing export
+
+Everything is now fully supported by your setup (ss_gcp_billing dataset).

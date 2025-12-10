@@ -3,6 +3,12 @@ from firebase_admin import initialize_app
 from common import invoke_bedrock_agent, save_user_details, save_chat_message, get_chat_context, db
 from common import get_remote_config, send_facebook_message, send_instagram_message, send_whatsapp_message
 import json
+import logging
+from datetime import datetime
+
+logger = logging.getLogger('main')
+logger.setLevel(logging.INFO)
+
 
 @https_fn.on_request()
 def agent_invoke(req: https_fn.Request) -> https_fn.Response:
@@ -269,4 +275,44 @@ def webhook_whatsapp(req: https_fn.Request) -> https_fn.Response:
             return https_fn.Response("EVENT_RECEIVED", status=200)
         return https_fn.Response("Not a whatsapp event", status=404)
     except Exception as e:
+        return https_fn.Response(f"Error: {str(e)}", status=500)
+
+@https_fn.on_request()
+def get_cost(req: https_fn.Request) -> https_fn.Response:
+    """
+    Get cost information for AWS and GCP services.
+    Query params: start_date (optional), end_date (optional)
+    
+    Example: /get_cost?start_date=2025-12-01&end_date=2025-12-10
+    """
+    if req.method != "GET":
+        return https_fn.Response("Method not allowed", status=405)
+    
+    try:
+        from cost_utils import get_all_costs
+        
+        # Get optional date parameters
+        start_date = req.args.get('start_date')
+        end_date = req.args.get('end_date')
+        
+        # Validate date format if provided
+        if start_date:
+            try:
+                datetime.strptime(start_date, '%Y-%m-%d')
+            except ValueError:
+                return https_fn.Response("Invalid start_date format. Use YYYY-MM-DD", status=400)
+        
+        if end_date:
+            try:
+                datetime.strptime(end_date, '%Y-%m-%d')
+            except ValueError:
+                return https_fn.Response("Invalid end_date format. Use YYYY-MM-DD", status=400)
+        
+        # Fetch all costs
+        cost_data = get_all_costs(start_date, end_date)
+        
+        return https_fn.Response(json.dumps(cost_data), mimetype='application/json')
+        
+    except Exception as e:
+        logger.error(f"Error fetching costs: {e}")
         return https_fn.Response(f"Error: {str(e)}", status=500)
